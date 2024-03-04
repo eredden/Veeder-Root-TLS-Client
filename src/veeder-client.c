@@ -24,8 +24,7 @@ int strtoint(char* str) {
 
 int main(int argc, char **argv) {
     if (argc != 4) {
-        printf("IP address, port number, and timeout in seconds "
-            "must be supplied.\n");
+        printf("Usage: %s <ip address> <port> <timeout>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
@@ -65,14 +64,13 @@ int main(int argc, char **argv) {
 
     if (inet_pton(AF_INET, host, &addr.sin_addr) < 1) {
         printf("Address %s could not be converted to network binary.\n", host);
+        close(socket_fd);
         exit(EXIT_FAILURE);
     }
 
     printf("Attempting to establish connection...\n");
 
-    // Establish connection with socket. 
-    // TO-DO: Invalid host/port can cause program hang. Handle this.
-
+    // Establishing connection with socket.
     if (connect(socket_fd, (struct sockaddr *) &addr, addr_len) == -1) {
         printf("Connection failed.\n");
         close(socket_fd);

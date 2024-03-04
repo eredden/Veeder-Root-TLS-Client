@@ -25,5 +25,4 @@ You can see in the above snippet of me running the program that I type in the se
 
 This is a list of things I intend on changing or fixing in the program.
 
-- Automatically end the program if a connection hangs too long.
-- Validate the response using it's checksum.
+- Validate server response using checksum at end of message.
