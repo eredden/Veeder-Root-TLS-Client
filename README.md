@@ -9,7 +9,7 @@ You can find commands to interact with the automatic tank gauges in the [VEEDER 
 Compile `veeder-client.c` in the `src` directory using your compiler of choice -- I personally use `gcc`. Execute the newly made executable with three arguments -- the hostname or IP address of the automatic tank gauge, the port number (generally 10001), and the timeout to wait for responses.
 
 ```
-me@computer:~/Downloads$ ./veeder-client 127.0.0.1 NAME 10001 1
+me@computer:~/Downloads$ ./veeder-client 127.0.0.1 10001 1
 Attempting to establish connection...
 Connected to 127.0.0.1 on port 10001!
 
@@ -20,9 +20,3 @@ Terminating connection...
 ```
 
 You can see in the above snippet of me running the program that I type in the serial command to interact with the automatic tank gauge, and an unfiltered response is returned. Then, I use `exit` to terminate the connection and end the program.
-
-## To-Do
-
-This is a list of things I intend on changing or fixing in the program.
-
-- Validate server response using checksum at end of message.
