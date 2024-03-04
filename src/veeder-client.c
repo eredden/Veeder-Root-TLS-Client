@@ -1,12 +1,26 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
 #define BUFFER_SIZE 64
+
+/* Verifies that input string "str" only contains numbers, then returns 
+   the integer representation of that string, e.g. "50" becomes 50. */
+int strtoint(char* str) {
+    for (int i = 0; i < strlen(str); i++) {
+        if (isdigit(str[i]) == 0) {
+            printf("\"%s\" must contain only numbers.\n", str);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    return strtol(str, NULL, 10);
+}
 
 int main(int argc, char **argv) {
     if (argc != 4) {
@@ -15,10 +29,12 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
-    char* host = argv[1];
-    // TO-DO: Add way of verifying that port and timeout are numbers.
-    int port = strtol(argv[2], NULL, 10);
-    int timeout = strtol(argv[3], NULL, 10);
+    char* host         = argv[1];
+    char* port_char    = argv[2];
+    char* timeout_char = argv[3];
+
+    int port    = strtoint(port_char);
+    int timeout = strtoint(timeout_char);
 
     if (port < 0 || port > 65535) {
         printf("Port must be between 0 and 65535.\n");
@@ -95,6 +111,7 @@ int main(int argc, char **argv) {
         sleep(timeout);
 
         // Get response from server and print it out to the terminal.
+        // TO-DO: Validate checksum at the end of the response.
         for (;;) {
             int recv_length = recv(socket_fd, recv_buffer, BUFFER_SIZE, 0);
 

@@ -25,5 +25,5 @@ You can see in the above snippet of me running the program that I type in the se
 
 This is a list of things I intend on changing or fixing in the program.
 
-- Verify that port and timeout inputs are purely numbers.
 - Automatically end the program if a connection hangs too long.
+- Validate the response using it's checksum.
