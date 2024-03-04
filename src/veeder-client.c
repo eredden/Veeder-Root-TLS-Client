@@ -7,19 +7,64 @@
 #include <string.h>
 #include <unistd.h>
 
-#define BUFFER_SIZE 64
+#define BUFFER_SIZE 1024
 
 /* Verifies that input string "str" only contains numbers, then returns 
    the integer representation of that string, e.g. "50" becomes 50. */
-int strtoint(char* str) {
+int str_to_int(char* str, int base) {
     for (int i = 0; i < strlen(str); i++) {
-        if (isdigit(str[i]) == 0) {
+        if (isdigit(str[i]) == 0 && base <= 10) {
             printf("\"%s\" must contain only numbers.\n", str);
             exit(EXIT_FAILURE);
         }
     }
 
-    return strtol(str, NULL, 10);
+    return strtol(str, NULL, base);
+}
+
+/* Verifies that a response sent from the server is correct by
+   comparing the message with the checksum. Returns bool. */
+int integrity_check(char* response) {
+    unsigned long int integrity_threshold = 0b10000000000000000;
+    unsigned long int message = 0;
+
+    char* separator = strstr(response, "&&");
+    char checksum_buffer[5];
+
+    // Verify that checksum is present and has the right length.
+    if (separator == NULL) {
+        return 0;
+    }
+
+    else if (strlen(separator) != 7) {
+        return 0;
+    }
+
+    // Calculate 16-bit binary sum of all characters in the message.
+    int checksum_index = strlen(response) - 5;
+
+    for (int i = 0; i < checksum_index; i++) {
+        message += (int) response[i];
+    }
+
+    message = message & 0xFFFF;
+    message = (message) + (message >> 16);
+
+    // Do the same for the sum of all characters in the checksum.
+    for (int i = 0; i < 4; i++) {
+        checksum_buffer[i] = response[i + checksum_index];
+    }
+
+    int checksum = str_to_int(checksum_buffer, 16) & 0xFFFF;
+
+    // Return true if message + checksum = expected integrity threshold.
+    if (message + checksum == integrity_threshold) {
+        return 1;
+    }
+
+    else {
+        return 0;
+    }
 }
 
 int main(int argc, char **argv) {
@@ -32,8 +77,8 @@ int main(int argc, char **argv) {
     char* port_char    = argv[2];
     char* timeout_char = argv[3];
 
-    int port    = strtoint(port_char);
-    int timeout = strtoint(timeout_char);
+    int port    = str_to_int(port_char, 10);
+    int timeout = str_to_int(timeout_char, 10);
 
     if (port < 0 || port > 65535) {
         printf("Port must be between 0 and 65535.\n");
@@ -118,14 +163,17 @@ int main(int argc, char **argv) {
                 break;
             } 
 
-            printf("%s", recv_buffer);
+            printf("%s\n", recv_buffer);
+            
+            if (integrity_check(recv_buffer) == 0) {
+                printf("Message failed integrity check"
+                       " due to invalid checksum.\n");
+            }
 
             if (recv_length < BUFFER_SIZE) {
                 break;
             }
         }
-
-        printf("\n");
     }
 
     printf("Terminating connection...\n");
