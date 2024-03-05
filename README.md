@@ -15,8 +15,10 @@ Connected to 127.0.0.1 on port 10001!
 
 > i10100
 i101002403031036211901&&FB34
+> help
+See https://github.com/eredden/Veeder-Root-TLS-Client for help.
 > exit
 Terminating connection...
 ```
 
-You can see in the above snippet of me running the program that I type in the serial command to interact with the automatic tank gauge, and an unfiltered response is returned. Then, I use `exit` to terminate the connection and end the program.
+You can see in the above snippet of me running the program that I type in the serial command to interact with the automatic tank gauge, and an unfiltered response is returned. `help` is used to get help, which currently just directs to this page. Then, I use `exit` to terminate the connection and end the program.
