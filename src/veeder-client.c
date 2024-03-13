@@ -12,7 +12,7 @@
 // Verifies that input string only has numbers, then returns string as integer.
 int str_to_int(char* str, int base);
 
-// Validates server response using it's message and checksum.
+// Validates server response using the message and checksum.
 int integrity_check(char* response);
 
 int main(int argc, char **argv) {
@@ -117,6 +117,7 @@ int main(int argc, char **argv) {
 
         if (response_data == NULL) {
             printf("Failed to allocate memory for response buffer.\n");
+            close(socket_fd);
             exit(EXIT_FAILURE);
         }
 
@@ -135,9 +136,12 @@ int main(int argc, char **argv) {
 
                 if (response_data == NULL) {
                     printf("Failed to allocate memory for response buffer.\n");
+                    close(socket_fd);
                     exit(EXIT_FAILURE);
                 }
             }
+
+            printf("%s", recv_buffer);
 
             // Add new data into the recv_data buffer for integrity check later.
             strncat(response_data, recv_buffer, BUFFER_SIZE);
@@ -147,15 +151,12 @@ int main(int argc, char **argv) {
             }
         }
 
-        printf("%s\n", response_data);
+        printf("\n");
 
-        if ((int) command[0] == toupper(command[0])) {
-            /* Display Format commands use an uppercase letter to denote 
-            their format. Since these commands do not have checksums,
-            we skip them here. */
-            continue;
-        }
-        else if (integrity_check(response_data) == 0) {
+        // Ensure that Display Format commands are not integrity checked.
+        int is_command_format = command[0] == tolower(command[0]);
+
+        if (is_command_format && integrity_check(response_data) == 0) {
             printf("Integrity check failed due to an invalid checksum.\n");
         }
 
@@ -166,6 +167,22 @@ int main(int argc, char **argv) {
     close(socket_fd);
 
     return EXIT_SUCCESS;
+}
+
+int str_to_int(char* str, int base) {
+    if (base <= 10) {
+        int str_length = strlen(str);
+
+        // Iterate through characters in str and ensure they are digits.
+        for (int i = 0; i < str_length; i++) {
+            if (isdigit(str[i]) == 0) {
+                printf("\"%s\" must contain only numbers.\n", str);
+                exit(EXIT_FAILURE);
+            }
+        }
+    }
+
+    return strtol(str, NULL, base);
 }
 
 int integrity_check(char* response) {
@@ -209,20 +226,4 @@ int integrity_check(char* response) {
     }
 
     return 0;
-}
-
-int str_to_int(char* str, int base) {
-    if (base <= 10) {
-        // Iterate through characters in str and ensure they are digits.
-        int str_length = strlen(str);
-
-        for (int i = 0; i < str_length; i++) {
-            if (isdigit(str[i]) == 0) {
-                printf("\"%s\" must contain only numbers.\n", str);
-                exit(EXIT_FAILURE);
-            }
-        }
-    }
-
-    return strtol(str, NULL, base);
 }
