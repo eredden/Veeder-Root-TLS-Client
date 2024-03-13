@@ -111,6 +111,11 @@ int main(int argc, char **argv) {
         int   response_size = BUFFER_SIZE * 2;
         char* response_data = (char *) malloc(response_size);
 
+        if (response_data == NULL) {
+            printf("Failed to allocate memory for response buffer.\n");
+            exit(EXIT_FAILURE);
+        }
+
         for (;;) {
             int recv_length = recv(socket_fd, recv_buffer, BUFFER_SIZE, 0);
 
@@ -123,6 +128,11 @@ int main(int argc, char **argv) {
             if (strlen(response_data) + strlen(recv_buffer) > response_size) {
                 response_size = response_size * 2;
                 response_data = (char *) realloc(response_data, response_size);
+
+                if (response_data == NULL) {
+                    printf("Failed to allocate memory for response buffer.\n");
+                    exit(EXIT_FAILURE);
+                }
             }
 
             // Add new data into the recv_data buffer for integrity check later.
