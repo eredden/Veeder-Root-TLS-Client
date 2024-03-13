@@ -113,7 +113,7 @@ int main(int argc, char **argv) {
 
         // Get response from server and print it out to the terminal.
         int   response_size = BUFFER_SIZE * 2;
-        char* response_data = (char *) malloc(response_size);
+        char* response_data = (char *) calloc(1, response_size);
 
         if (response_data == NULL) {
             printf("Failed to allocate memory for response buffer.\n");
@@ -174,13 +174,16 @@ int integrity_check(char* response) {
 
     // Verify that checksum is present and has the right length.
     char* separator = strstr(response, "&&");
-    char checksum_buffer[5];
+    char  checksum_buffer[5];
+
+    int expected_separator_length = 7;
+    int expected_sum_bits = 16;
 
     if (separator == NULL) {
         return 0;
     }
 
-    if (strlen(separator) != 7) {
+    if (strlen(separator) != expected_separator_length) {
         return 0;
     }
 
@@ -192,14 +195,14 @@ int integrity_check(char* response) {
     }
 
     message = message & 0xFFFF;
-    message = (message) + (message >> 16);
+    message = (message) + (message >> expected_sum_bits);
 
     // Convert hexadecimal checksum number to integer.
     for (int i = 0; i < 4; i++) {
         checksum_buffer[i] = response[i + checksum_index];
     }
 
-    int checksum = str_to_int(checksum_buffer, 16) & 0xFFFF;
+    int checksum = str_to_int(checksum_buffer, expected_sum_bits) & 0xFFFF;
 
     if (message + checksum == integrity_threshold) {
         return 1;
@@ -211,7 +214,9 @@ int integrity_check(char* response) {
 int str_to_int(char* str, int base) {
     if (base <= 10) {
         // Iterate through characters in str and ensure they are digits.
-        for (int i = 0; i < strlen(str); i++) {
+        int str_length = strlen(str);
+
+        for (int i = 0; i < str_length; i++) {
             if (isdigit(str[i]) == 0) {
                 printf("\"%s\" must contain only numbers.\n", str);
                 exit(EXIT_FAILURE);
