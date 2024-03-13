@@ -108,7 +108,9 @@ int main(int argc, char **argv) {
         sleep(timeout);
 
         // Get response from server and print it out to the terminal.
-        // TO-DO: Validate checksum at the end of the response.
+        int   response_size = BUFFER_SIZE * 2;
+        char* response_data = (char *) malloc(response_size);
+
         for (;;) {
             int recv_length = recv(socket_fd, recv_buffer, BUFFER_SIZE, 0);
 
@@ -117,17 +119,33 @@ int main(int argc, char **argv) {
                 break;
             } 
 
-            printf("%s\n", recv_buffer);
-            
-            if (integrity_check(recv_buffer) == 0) {
-                printf("Message failed integrity check"
-                       " due to invalid checksum.\n");
+            // Resize the recv_data buffer if it is too small to hold all data.
+            if (strlen(response_data) + strlen(recv_buffer) > response_size) {
+                response_size = response_size * 2;
+                response_data = (char *) realloc(response_data, response_size);
             }
+
+            // Add new data into the recv_data buffer for integrity check later.
+            strncat(response_data, recv_buffer, BUFFER_SIZE);
 
             if (recv_length < BUFFER_SIZE) {
                 break;
             }
         }
+
+        printf("%s\n", response_data);
+
+        if ((int) command[0] == toupper(command[0])) {
+            /* Display Format commands use an uppercase letter to denote 
+            their format. Since these commands do not have checksums,
+            we skip them here. */
+            continue;
+        }
+        else if (integrity_check(response_data) == 0) {
+            printf("Integrity check failed due to an invalid checksum.\n");
+        }
+
+        free(response_data);
     }
 
     printf("Terminating connection...\n");
@@ -140,10 +158,10 @@ int integrity_check(char* response) {
     unsigned long int integrity_threshold = 0b10000000000000000;
     unsigned long int message = 0;
 
+    // Verify that checksum is present and has the right length.
     char* separator = strstr(response, "&&");
     char checksum_buffer[5];
 
-    // Verify that checksum is present and has the right length.
     if (separator == NULL) {
         return 0;
     }
@@ -169,7 +187,6 @@ int integrity_check(char* response) {
 
     int checksum = str_to_int(checksum_buffer, 16) & 0xFFFF;
 
-    // Return true if message + checksum = expected integrity threshold.
     if (message + checksum == integrity_threshold) {
         return 1;
     }
