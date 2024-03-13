@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
     const char soh = 0x01; // Must be appended to the front of all commands.
 
     for (;;) {
-        char command[BUFFER_SIZE] = { 0 };
+        char command[BUFFER_SIZE]     = { 0 };
         char send_buffer[BUFFER_SIZE] = { 0 };
         char recv_buffer[BUFFER_SIZE] = { 0 };
 
@@ -84,6 +84,10 @@ int main(int argc, char **argv) {
         // Prompt user for command, store it, parse it, add SOH.
         printf("> ");
         fgets(command, sizeof(command), stdin);
+
+        if (strlen(command) == 1) {
+            continue;
+        }
 
         if (strstr(command, "exit") != NULL) {
             break;
