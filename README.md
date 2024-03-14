@@ -6,10 +6,10 @@ You can find commands to interact with the automatic tank gauges in the [VEEDER 
 
 ## Usage
 
-Compile `veeder-client.c` in the `src` directory using your compiler of choice -- I personally use `gcc`. Execute the newly made executable with three arguments -- the hostname or IP address of the automatic tank gauge, the port number (generally 10001), and the timeout to wait for responses.
+Compile `veeder-client.c` in the `src` directory using your compiler of choice -- I personally use `gcc`. Execute the newly made executable with three arguments -- the hostname or IP address of the automatic tank gauge and the port number (usually 10001).
 
 ```
-me@computer:~/Downloads$ ./veeder-client 127.0.0.1 10001 1
+me@computer:~/Downloads$ ./veeder-client 127.0.0.1 10001
 Attempting to establish connection...
 Connected to 127.0.0.1 on port 10001!
 

@@ -8,6 +8,7 @@
 #include <unistd.h>
 
 #define BUFFER_SIZE 1024
+#define MAX_REQUEST 50
 
 // Verifies that input string only has numbers, then returns string as integer.
 int str_to_int(char* str, int base);
@@ -16,25 +17,17 @@ int str_to_int(char* str, int base);
 int integrity_check(char* response);
 
 int main(int argc, char **argv) {
-    if (argc != 4) {
-        printf("Usage: %s <ip address> <port> <timeout>\n", argv[0]);
+    // Handling arguments passed to the command.
+    if (argc != 3) {
+        printf("Usage: %s <ip address> <port>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
-    char* host         = argv[1];
-    char* port_char    = argv[2];
-    char* timeout_char = argv[3];
-
-    int port    = str_to_int(port_char, 10);
-    int timeout = str_to_int(timeout_char, 10);
+    char* host = argv[1];
+    int   port = str_to_int(argv[2], 10);
 
     if (port < 0 || port > 65535) {
         printf("Port must be between 0 and 65535.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    if (timeout < 0) {
-        printf("Timeout cannot be less than 0 seconds.\n");
         exit(EXIT_FAILURE);
     }
 
@@ -72,16 +65,15 @@ int main(int argc, char **argv) {
 
     printf("Connected to %s on port %d!\n\n", host, port);
 
-    const char soh = 0x01; // Must be appended to the front of all commands.
-
     for (;;) {
-        char command[BUFFER_SIZE]     = { 0 };
+        char command[BUFFER_SIZE - 1] = { 0 };
         char send_buffer[BUFFER_SIZE] = { 0 };
         char recv_buffer[BUFFER_SIZE] = { 0 };
 
-        send_buffer[0] = soh;
+        // Represents start of header.
+        send_buffer[0] = 0x01;
 
-        // Prompt user for command, store it, parse it, add SOH.
+        // Prompt user for command, handle it, prepend start of header.
         printf("> ");
         fgets(command, sizeof(command), stdin);
 
@@ -108,46 +100,53 @@ int main(int argc, char **argv) {
             continue;
         }
 
-        // Briefly wait to ensure a response comes before we check for it.
-        sleep(timeout);
-
         // Get response from server and print it out to the terminal.
-        int   response_size = BUFFER_SIZE * 2;
-        char* response_data = (char *) calloc(1, response_size);
+        int   resp_size = BUFFER_SIZE * 2;
+        char* resp_data = (char *) calloc(1, resp_size);
 
-        if (response_data == NULL) {
+        if (resp_data == NULL) {
             printf("Failed to allocate memory for response buffer.\n");
             close(socket_fd);
             exit(EXIT_FAILURE);
         }
 
-        for (;;) {
+        for (int requests = 0; requests < MAX_REQUEST; requests++) {
             int recv_length = recv(socket_fd, recv_buffer, BUFFER_SIZE, 0);
 
             if (recv_length == -1) {
-                printf("Receiving response from server failed.\n");
+                printf("\nReceiving response from server failed.\n");
                 break;
             } 
 
             // Resize the recv_data buffer if it is too small to hold all data.
-            if (strlen(response_data) + strlen(recv_buffer) > response_size) {
-                response_size = response_size * 2;
-                response_data = (char *) realloc(response_data, response_size);
+            if (strlen(resp_data) + strlen(recv_buffer) > resp_size) {
+                resp_size = resp_size * 2;
+                resp_data = (char *) realloc(resp_data, resp_size);
 
-                if (response_data == NULL) {
+                if (resp_data == NULL) {
                     printf("Failed to allocate memory for response buffer.\n");
                     close(socket_fd);
                     exit(EXIT_FAILURE);
                 }
             }
 
+            // Add new data into the recv_data buffer for integrity check later.
+            strncat(resp_data, recv_buffer, BUFFER_SIZE);
             printf("%s", recv_buffer);
 
-            // Add new data into the recv_data buffer for integrity check later.
-            strncat(response_data, recv_buffer, BUFFER_SIZE);
+            // End if the ETX is present.
+            int contains_etx = 0;
 
-            if (recv_length < BUFFER_SIZE) {
-                break;
+            for (int i = 0; i < recv_length; i++) {
+                if (recv_buffer[i] == (char) 0x03) {
+                    contains_etx = 1;
+                }
+            }
+
+            if (contains_etx == 1 || recv_length == 0) { 
+                break; 
+            } else { 
+                sleep(1); 
             }
         }
 
@@ -156,11 +155,11 @@ int main(int argc, char **argv) {
         // Ensure that Display Format commands are not integrity checked.
         int is_command_format = command[0] == tolower(command[0]);
 
-        if (is_command_format && integrity_check(response_data) == 0) {
+        if (is_command_format && integrity_check(resp_data) == 0) {
             printf("Integrity check failed due to an invalid checksum.\n");
         }
 
-        free(response_data);
+        free(resp_data);
     }
 
     printf("Terminating connection...\n");
