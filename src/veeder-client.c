@@ -17,7 +17,6 @@ int str_to_int(char* str, int base);
 int integrity_check(char* response);
 
 int main(int argc, char **argv) {
-    // Handling arguments passed to the command.
     if (argc != 3) {
         printf("Usage: %s <ip address> <port>\n", argv[0]);
         exit(EXIT_FAILURE);
@@ -31,19 +30,16 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
-    // Creating socket and verifying it was made successfully.
+    // Everything before the infinite loop is for setting up the socket.
     int socket_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
     if (socket_fd == -1) {
-        perror("Failed to create socket.\n");
+        printf("Failed to create socket.\n");
         exit(EXIT_FAILURE);
     }
 
-    // Setting up address/port info to bind to the newly made socket.
     struct sockaddr_in addr;
     memset(&addr, 0, sizeof addr);
-
-    socklen_t addr_len = sizeof(addr);
 
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
@@ -56,8 +52,7 @@ int main(int argc, char **argv) {
 
     printf("Attempting to establish connection...\n");
 
-    // Establishing connection with socket.
-    if (connect(socket_fd, (struct sockaddr *) &addr, addr_len) == -1) {
+    if (connect(socket_fd, (struct sockaddr *) &addr, sizeof(addr)) == -1) {
         printf("Connection failed.\n");
         close(socket_fd);
         exit(EXIT_FAILURE);
@@ -65,6 +60,7 @@ int main(int argc, char **argv) {
 
     printf("Connected to %s on port %d!\n\n", host, port);
 
+    // Everything from this point handles user inputs and sent/received data.
     for (;;) {
         char command[BUFFER_SIZE - 1] = { 0 };
         char send_buffer[BUFFER_SIZE] = { 0 };
@@ -73,7 +69,6 @@ int main(int argc, char **argv) {
         // Represents start of header.
         send_buffer[0] = 0x01;
 
-        // Prompt user for command, handle it, prepend start of header.
         printf("> ");
         fgets(command, sizeof(command), stdin);
 
@@ -94,15 +89,13 @@ int main(int argc, char **argv) {
         command[strcspn(command, "\n")] = 0;
         strcat(send_buffer, command);
 
-        // Sending command to server.
         if(send(socket_fd, send_buffer, strlen(send_buffer) + 1, 0) == -1) {
             printf("Failed to send command to server.\n");
             continue;
         }
 
-        // Get response from server and print it out to the terminal.
-        int   resp_size = BUFFER_SIZE * 2;
-        char* resp_data = (char *) calloc(1, resp_size);
+        int   resp_size = BUFFER_SIZE;
+        char* resp_data = calloc(1, resp_size);
 
         if (resp_data == NULL) {
             printf("Failed to allocate memory for response buffer.\n");
@@ -118,10 +111,10 @@ int main(int argc, char **argv) {
                 break;
             } 
 
-            // Resize the recv_data buffer if it is too small to hold all data.
+            // Dynamically resizes resp_data if buffer size is too low.
             if (strlen(resp_data) + strlen(recv_buffer) > resp_size) {
                 resp_size = resp_size * 2;
-                resp_data = (char *) realloc(resp_data, resp_size);
+                resp_data = realloc(resp_data, resp_size);
 
                 if (resp_data == NULL) {
                     printf("Failed to allocate memory for response buffer.\n");
@@ -130,11 +123,9 @@ int main(int argc, char **argv) {
                 }
             }
 
-            // Add new data into the recv_data buffer for integrity check later.
             strncat(resp_data, recv_buffer, BUFFER_SIZE);
             printf("%s", recv_buffer);
 
-            // End if the ETX is present.
             int contains_etx = 0;
 
             for (int i = 0; i < recv_length; i++) {
@@ -172,7 +163,6 @@ int str_to_int(char* str, int base) {
     if (base <= 10) {
         int str_length = strlen(str);
 
-        // Iterate through characters in str and ensure they are digits.
         for (int i = 0; i < str_length; i++) {
             if (isdigit(str[i]) == 0) {
                 printf("\"%s\" must contain only numbers.\n", str);
@@ -188,7 +178,6 @@ int integrity_check(char* response) {
     unsigned long int integrity_threshold = 0b10000000000000000;
     unsigned long int message = 0;
 
-    // Verify that checksum is present and has the right length.
     char* separator = strstr(response, "&&");
     char  checksum_buffer[5];
 
