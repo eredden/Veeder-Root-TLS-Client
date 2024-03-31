@@ -87,7 +87,7 @@ int main(int argc, char **argv) {
         }
 
         command[strcspn(command, "\n")] = 0;
-        strcat(send_buffer, command);
+        strncat(send_buffer, command, BUFFER_SIZE - 1);
 
         if(send(socket_fd, send_buffer, strlen(send_buffer) + 1, 0) == -1) {
             printf("Failed to send command to server.\n");
@@ -179,7 +179,7 @@ int integrity_check(char* response) {
     unsigned long int message = 0;
 
     char* separator = strstr(response, "&&");
-    char  checksum_buffer[5];
+    char  checksum_buffer[5] = { 0 };
 
     int expected_separator_length = 7;
     int expected_sum_bits = 16;
