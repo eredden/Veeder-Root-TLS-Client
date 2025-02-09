@@ -200,7 +200,6 @@ int integrity_check(char* response) {
     }
 
     message = message & 0xFFFF;
-    message = (message) + (message >> expected_sum_bits);
 
     // Convert hexadecimal checksum number to integer.
     for (int i = 0; i < 4; i++) {
